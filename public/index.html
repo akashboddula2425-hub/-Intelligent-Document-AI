@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intelligent Document AI</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
+
+        :root {
+            --bg: #000;
+            --text: #fff;
+            --muted: rgba(255, 255, 255, 0.68);
+            --line: rgba(255, 255, 255, 0.16);
+            --danger-bg: rgba(127, 29, 29, 0.35);
+            --danger-border: rgba(252, 165, 165, 0.35);
+            --danger-text: #fecaca;
+            --warn-bg: rgba(120, 53, 15, 0.32);
+            --warn-border: rgba(253, 186, 116, 0.4);
+            --warn-text: #fed7aa;
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: Inter, "Segoe UI", system-ui, sans-serif;
+            overflow-x: hidden;
+        }
+
+        .liquid-glass {
+            background: rgba(255, 255, 255, 0.01);
+            background-blend-mode: luminosity;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            border: none;
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .liquid-glass::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            padding: 1.4px;
+            background: linear-gradient(
+                180deg,
+                rgba(255, 255, 255, 0.45) 0%,
+                rgba(255, 255, 255, 0.15) 20%,
+                rgba(255, 255, 255, 0) 40%,
+                rgba(255, 255, 255, 0) 60%,
+                rgba(255, 255, 255, 0.15) 80%,
+                rgba(255, 255, 255, 0.45) 100%
+            );
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+
+        .hero {
+            min-height: 100vh;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 28px 14px;
+        }
+
+        #heroBgVideo {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: bottom;
+            opacity: 0;
+        }
+
+        .hero-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.82) 45%, rgba(0,0,0,1) 100%);
+        }
+
+        .app-shell {
+            width: min(980px, 100%);
+            border-radius: 26px;
+            padding: 20px;
+            z-index: 2;
+        }
+
+        .app-head {
+            text-align: center;
+            margin-bottom: 18px;
+        }
+
+        .app-head h1 {
+            margin: 0;
+            font-family: "Instrument Serif", serif;
+            font-size: clamp(40px, 7vw, 88px);
+            line-height: 0.95;
+            letter-spacing: -0.02em;
+        }
+
+        .app-head p {
+            margin: 10px 0 0;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.55;
+        }
+
+        .upload-area {
+            border: 1px dashed rgba(255, 255, 255, 0.35);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.03);
+            text-align: center;
+            padding: 24px 16px;
+        }
+
+        input[type="file"] { display: none; }
+
+        .choose-btn, .analyze-btn, .copy-btn, .preview-link-btn {
+            border: 0;
+            border-radius: 999px;
+            cursor: pointer;
+            color: #fff;
+            font-weight: 600;
+            transition: 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .choose-btn {
+            background: rgba(255, 255, 255, 0.13);
+            padding: 10px 18px;
+            font-size: 14px;
+        }
+
+        .choose-btn:hover { background: rgba(255, 255, 255, 0.2); }
+
+        #fileName {
+            margin: 10px 0 0;
+            color: rgba(255, 255, 255, 0.75);
+            font-size: 14px;
+            word-break: break-word;
+        }
+
+        .preview-card {
+            display: none;
+            margin-top: 12px;
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .preview-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .preview-title {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .preview-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .preview-meta { color: var(--muted); font-size: 12px; }
+
+        .preview-link-btn {
+            padding: 7px 12px;
+            font-size: 12px;
+            background: rgba(255, 255, 255, 0.09);
+        }
+
+        #previewImage {
+            width: 100%;
+            max-height: 280px;
+            object-fit: contain;
+            border-radius: 12px;
+            border: 1px solid var(--line);
+            background: rgba(255,255,255,0.04);
+            cursor: zoom-in;
+        }
+
+        #previewImage.is-expanded {
+            max-height: 72vh;
+            cursor: zoom-out;
+        }
+
+        .analyze-btn {
+            width: 100%;
+            margin-top: 12px;
+            padding: 12px 16px;
+            font-family: "Instrument Serif", serif;
+            font-size: 28px;
+            background: #fff;
+            color: #000;
+            border-radius: 12px;
+        }
+
+        .analyze-btn:disabled {
+            opacity: 0.72;
+            cursor: not-allowed;
+        }
+
+        #loading {
+            display: none;
+            margin-top: 10px;
+            text-align: center;
+            color: #fcd34d;
+            font-size: 13px;
+        }
+
+        #statusMessage {
+            display: none;
+            margin-top: 10px;
+            border-radius: 12px;
+            padding: 10px 12px;
+            border: 1px solid var(--danger-border);
+            background: var(--danger-bg);
+            color: var(--danger-text);
+            font-size: 13px;
+        }
+
+        #statusMessage.is-warning {
+            border-color: var(--warn-border);
+            background: var(--warn-bg);
+            color: var(--warn-text);
+        }
+
+        #results-wrapper {
+            display: none;
+            margin-top: 12px;
+        }
+
+        .result-box {
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .result-header h3 {
+            margin: 0;
+            font-size: 17px;
+            font-weight: 600;
+        }
+
+        .copy-btn {
+            padding: 7px 13px;
+            font-size: 12px;
+            background: rgba(255,255,255,0.12);
+        }
+
+        pre {
+            margin: 0;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: rgba(255,255,255,0.02);
+            padding: 14px;
+            max-height: 380px;
+            overflow: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: rgba(255,255,255,0.95);
+            font-size: 14px;
+            line-height: 1.55;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .helper-bar {
+            margin-top: 14px;
+            color: rgba(255,255,255,0.7);
+            font-size: 12px;
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        @media (max-width: 640px) {
+            .app-shell { padding: 14px; }
+            .app-head h1 { font-size: clamp(34px, 11vw, 54px); }
+            .analyze-btn { font-size: 24px; }
+            .preview-head { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+    <section class="hero">
+        <video
+            id="heroBgVideo"
+            src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260405_074625_a81f018a-956b-43fb-9aee-4d1508e30e6a.mp4"
+            muted
+            autoplay
+            playsinline
+            preload="auto"
+        ></video>
+        <div class="hero-overlay"></div>
+
+        <main class="app-shell liquid-glass">
+            <header class="app-head">
+                <h1>Intelligent Document AI</h1>
+                <p>Upload an image, verify preview, and extract readable text instantly.</p>
+            </header>
+
+            <form id="uploadForm">
+                <div class="upload-area">
+                    <label for="document" class="choose-btn liquid-glass">Choose Image</label>
+                    <input id="document" type="file" name="document" accept="image/*" required onchange="updateFileName()">
+                    <p id="fileName">No file chosen</p>
+                </div>
+
+                <div id="previewCard" class="preview-card">
+                    <div class="preview-head">
+                        <p class="preview-title">Uploaded Image Preview</p>
+                        <div class="preview-actions">
+                            <a id="openPreviewBtn" class="preview-link-btn liquid-glass" href="#" target="_blank" rel="noopener noreferrer">Open full size</a>
+                            <div id="previewMeta" class="preview-meta"></div>
+                        </div>
+                    </div>
+                    <img id="previewImage" alt="Uploaded document preview">
+                </div>
+
+                <button type="submit" class="analyze-btn">Analyze Document</button>
+
+                <div id="loading">Analyzing image...</div>
+                <div id="statusMessage" role="alert"></div>
+
+                <div id="results-wrapper">
+                    <div class="result-box liquid-glass">
+                        <div class="result-header">
+                            <h3>Extracted Text</h3>
+                            <button type="button" class="copy-btn liquid-glass" onclick="copyText('rawResult', this)">Copy</button>
+                        </div>
+                        <pre id="rawResult"></pre>
+                    </div>
+                </div>
+            </form>
+
+            <div class="helper-bar">
+                <span>Best results: upload sharp image or crop near text.</span>
+                <span>Supports PNG, JPG, JPEG.</span>
+            </div>
+        </main>
+    </section>
+
+    <script>
+        const uploadForm = document.getElementById('uploadForm');
+        const fileInput = document.getElementById('document');
+        const fileNameLabel = document.getElementById('fileName');
+        const loadingEl = document.getElementById('loading');
+        const statusMessageEl = document.getElementById('statusMessage');
+        const resultsWrapper = document.getElementById('results-wrapper');
+        const rawResultEl = document.getElementById('rawResult');
+        const previewCardEl = document.getElementById('previewCard');
+        const previewImageEl = document.getElementById('previewImage');
+        const previewMetaEl = document.getElementById('previewMeta');
+        const openPreviewBtn = document.getElementById('openPreviewBtn');
+        const submitButton = uploadForm.querySelector('.analyze-btn');
+        const heroVideo = document.getElementById('heroBgVideo');
+        let previewUrl = null;
+        let isFadingOut = false;
+        let rafId = null;
+
+        function animateOpacity(el, from, to, duration, done) {
+            if (rafId) cancelAnimationFrame(rafId);
+            const start = performance.now();
+            const delta = to - from;
+            const tick = (now) => {
+                const progress = Math.min(1, (now - start) / duration);
+                el.style.opacity = String(from + delta * progress);
+                if (progress < 1) {
+                    rafId = requestAnimationFrame(tick);
+                } else if (typeof done === 'function') {
+                    done();
+                }
+            };
+            rafId = requestAnimationFrame(tick);
+        }
+
+        heroVideo.addEventListener('canplay', () => {
+            heroVideo.play().catch(() => {});
+            animateOpacity(heroVideo, Number(heroVideo.style.opacity || 0), 1, 500);
+        });
+
+        heroVideo.addEventListener('timeupdate', () => {
+            const remaining = heroVideo.duration - heroVideo.currentTime;
+            if (!isFadingOut && remaining <= 0.55) {
+                isFadingOut = true;
+                animateOpacity(heroVideo, Number(heroVideo.style.opacity || 1), 0, 500);
+            }
+        });
+
+        heroVideo.addEventListener('ended', () => {
+            heroVideo.style.opacity = '0';
+            isFadingOut = false;
+            setTimeout(() => {
+                heroVideo.currentTime = 0;
+                heroVideo.play().catch(() => {});
+                animateOpacity(heroVideo, 0, 1, 500);
+            }, 100);
+        });
+
+        function updateFileName() {
+            const file = fileInput.files[0];
+            fileNameLabel.textContent = file ? file.name : "No file chosen";
+
+            if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+                previewUrl = null;
+            }
+
+            if (!file || !file.type.startsWith('image/')) {
+                previewCardEl.style.display = 'none';
+                previewImageEl.removeAttribute('src');
+                previewImageEl.classList.remove('is-expanded');
+                openPreviewBtn.setAttribute('href', '#');
+                previewMetaEl.textContent = '';
+                return;
+            }
+
+            previewUrl = URL.createObjectURL(file);
+            previewImageEl.src = previewUrl;
+            openPreviewBtn.setAttribute('href', previewUrl);
+            previewMetaEl.textContent = `${(file.size / 1024).toFixed(1)} KB`;
+            previewCardEl.style.display = 'block';
+        }
+
+        previewImageEl.addEventListener('click', () => {
+            previewImageEl.classList.toggle('is-expanded');
+        });
+
+        function setStatus(message, type = 'error') {
+            statusMessageEl.textContent = message;
+            statusMessageEl.classList.remove('is-warning');
+            if (type === 'warning') {
+                statusMessageEl.classList.add('is-warning');
+            }
+            statusMessageEl.style.display = message ? 'block' : 'none';
+        }
+
+        function copyText(elementId, btn) {
+            const textToCopy = document.getElementById(elementId).textContent;
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const originalText = btn.textContent;
+                btn.textContent = "Copied";
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 1600);
+            }).catch(() => {
+                setStatus("Clipboard permission was denied. Copy manually from the output box.");
+            });
+        }
+
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!fileInput.files[0]) {
+                setStatus("Please choose an image first.");
+                return;
+            }
+
+            loadingEl.style.display = 'block';
+            resultsWrapper.style.display = 'none';
+            setStatus('');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Analyzing...';
+
+            const formData = new FormData();
+            formData.append('document', fileInput.files[0]);
+
+            try {
+                const response = await fetch('/api/analyze', { method: 'POST', body: formData });
+                const data = await response.json().catch(() => ({}));
+
+                if (!response.ok || data.error) {
+                    rawResultEl.textContent = data.rawText || "Could not extract text from the uploaded image.";
+                    setStatus(data.error || `Request failed with status ${response.status}.`);
+                } else {
+                    rawResultEl.textContent = data.rawText || "(No OCR text returned)";
+                    if (data.status === 'partial_success' || data.warning) {
+                        setStatus(data.warning || data.message || "OCR completed with fallback output.", 'warning');
+                    } else {
+                        setStatus('');
+                    }
+                }
+                resultsWrapper.style.display = 'block';
+            } catch (error) {
+                rawResultEl.textContent = "";
+                setStatus("Network error: unable to reach the API.");
+                resultsWrapper.style.display = 'block';
+            } finally {
+                loadingEl.style.display = 'none';
+                submitButton.disabled = false;
+                submitButton.textContent = 'Analyze Document';
+            }
+        });
+    </script>
+</body>
+</html>
