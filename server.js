@@ -46,7 +46,7 @@ app.post('/api/analyze', upload.single('document'), async (req, res) => {
         `;
 
         const aiResponse = await ai.models.generateContent({
-            model: 'gemini-2.0-flash',
+            model: 'gemini-1.5-flash',
             contents: [
                 { text: prompt }, // Strictly define this as text
                 {
