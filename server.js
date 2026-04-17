@@ -30,11 +30,9 @@ app.post('/api/analyze', upload.single('document'), async (req, res) => {
     try {
         console.log(`📄 1. Image received in memory. Passing directly to Gemini Vision...`);
         
-        // Convert the image buffer to a base64 string for Gemini
         const base64Image = req.file.buffer.toString("base64");
         const mimeType = req.file.mimetype;
 
-        // Ask Gemini to do BOTH the reading and the structuring
         const prompt = `
         You are a highly accurate data extraction API. 
         I am providing you with an image of a document.
@@ -45,10 +43,11 @@ app.post('/api/analyze', upload.single('document'), async (req, res) => {
         Return ONLY the raw JSON object. Do not include any markdown formatting or code blocks.
         `;
 
+        // 🚨 STRICTLY LOCKED TO GEMINI 2.0 FLASH FOR STABILITY
         const aiResponse = await ai.models.generateContent({
-            model: 'gemini-1.5-flash',
+            model: 'gemini-2.0-flash',
             contents: [
-                { text: prompt }, // Strictly define this as text
+                { text: prompt }, 
                 {
                     inlineData: {
                         data: base64Image,
@@ -61,20 +60,18 @@ app.post('/api/analyze', upload.single('document'), async (req, res) => {
             }
         });
 
-        // Parse Gemini's combined response
         const result = JSON.parse(aiResponse.text);
         console.log("🧠 2. AI Vision & Parsing Complete!");
 
         res.json({
             status: "success",
             message: "Document successfully analyzed and structured!",
-            rawText: result.rawText,           // Sent back to your UI
-            data: result.structuredData        // Sent back to your UI
+            rawText: result.rawText,           
+            data: result.structuredData        
         });
 
     } catch (error) {
         console.error("❌ Process Error:", error);
-        // 🚨 UPGRADE: Send the EXACT error message to the frontend UI
         res.status(500).json({ error: `Backend Error: ${error.message}` });
     }
 });
