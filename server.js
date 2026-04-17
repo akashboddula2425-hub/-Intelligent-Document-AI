@@ -48,7 +48,7 @@ app.post('/api/analyze', upload.single('document'), async (req, res) => {
         const aiResponse = await ai.models.generateContent({
             model: 'gemini-2.0-flash',
             contents: [
-                prompt,
+                { text: prompt }, // Strictly define this as text
                 {
                     inlineData: {
                         data: base64Image,
@@ -74,7 +74,8 @@ app.post('/api/analyze', upload.single('document'), async (req, res) => {
 
     } catch (error) {
         console.error("❌ Process Error:", error);
-        res.status(500).json({ error: "Failed to process the document. Rate limit or server error." });
+        // 🚨 UPGRADE: Send the EXACT error message to the frontend UI
+        res.status(500).json({ error: `Backend Error: ${error.message}` });
     }
 });
 
